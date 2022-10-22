@@ -66,7 +66,7 @@ function init(){
             myPlacemark.geometry.setCoordinates(coords);
         }
         else{
-            xhr.open('GET', '/checkAround');
+            xhr.open('GET', '/checkAround?coords=' + coords);
             xhr.send();
             xhr.onload = function(){
                 var responseText = xhr.responseText;
