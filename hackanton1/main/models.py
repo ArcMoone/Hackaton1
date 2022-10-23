@@ -12,3 +12,4 @@ class Users(models.Model):
 class Points(models.Model):
     Latitude = models.FloatField()
     Longitude = models.FloatField()
+    Rating = models.IntegerField(default=0)

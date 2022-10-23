@@ -3,7 +3,8 @@ from . import views
 
 urlpatterns = [
     path('', views.index),
-    path('lookAround', views.lookAround),
+    path('checkAround', views.checkAround),
     path('getUserPoint', views.getUserPoint),
-    path('getPoints', views.getPoints)
+    path('getPoints', views.getPoints),
+    path('setPoint', views.setPoint)
 ]

@@ -1,6 +1,6 @@
 var placemarks = [];
 
-function createPlacemark(coords){
+function createPlacemark(coords, isDraggable = false){
     return new ymaps.Placemark(coords, {
         hintContent: '',
         balloonContent: ''
@@ -9,18 +9,18 @@ function createPlacemark(coords){
         iconImageHref: 'https://cdn-icons-png.flaticon.com/512/5309/5309036.png',
         iconImageSize: [40, 40],
         iconImageOffset: [-20, -20],
-        draggable: true
+        draggable: isDraggable
         })
 }
 
 function getAllPoints(){
-    var xhr = new XMLHttpRequest();
+    let xhr = new XMLHttpRequest();
     xhr.responseType = 'json';
     xhr.open('GET', '/getPoints');
     xhr.send();
 
     xhr.onload = function(){
-        var response = xhr.response;
+        let response = xhr.response;
         // TODO:(Тимур) получить массив меток из бд
         //вот как массив должен выглядеть:
         placemarks = [ // в квадратных скобках элементы массива (метки)
@@ -39,55 +39,58 @@ function getAllPoints(){
 }
 
 function init(){
-    var map = new ymaps.Map('map', { // инициализация карты
+    let map = new ymaps.Map('map', { // инициализация карты
         center: [55.75399399999374, 37.62209300000001],
         zoom: 12,
         controls: ['zoomControl'],
         behaviors: []
     });
 
-    var userPlacemark;
-    var userID = 1; // временно
-    var xhr = new XMLHttpRequest();
+    let userPlacemark;
+    let userID = 1; // временно
+    let xhr = new XMLHttpRequest();
     xhr.responseType = 'json';
-    xhr.open('GET', '/getUserPoint?id=' + userID);
+    xhr.open('GET', '/getUserPoint?id=' + userID); // Получаю метку пользователя по его id
     xhr.send();
 
     xhr.onload = function(){
-        var response = xhr.response;
-        var coords = response['coords'];
+        let response = xhr.response;
+        let coords = response['coords'];
         if(coords[0] != 0 && coords[1] != 0){
-            userPlacemark = createPlacemark([coords[0], coords[1]]);
+            userPlacemark = createPlacemark([coords[0], coords[1]], true); // Ставлю метку пользователя
             map.geoObjects.add(userPlacemark);
         }
     };
 
     placemarks.forEach(function(obj){ // использую массив, полученный из бд, для расставления меток на карту
-        var placemark = createPlacemark([obj.latitude, obj.longitude]);
+        let placemark = createPlacemark([obj.latitude, obj.longitude]);
         map.geoObjects.add(placemark);
     });
 
     map.events.add('click', function(e){ // жду клика по карте и ставлю/передвигаю метку пользователя
-        var coords = e.get('coords');
-        if(myPlacemark){
-            myPlacemark.geometry.setCoordinates(coords);
+        let coords = e.get('coords');
+        if(userPlacemark){
+            userPlacemark.geometry.setCoordinates(coords);
         }
         else{
-            xhr.open('GET', '/checkAround?coords=' + coords);
-            xhr.send();
-            xhr.onload = function(){
-                var responseText = xhr.responseText;
-            }
-            /*TODO: (Никита) пройти по бд с пользователями и проверить:
-                    Если в радиусе 1 км есть метки, которые уже и так в голосовании, ничего дальше делать не нужно.
-                    Если в радиусе 500 м есть только пользовательские метки, то, если их >= 100, поставить в их общем центре одну настоящую, а пользовательские удалить.
-            */
-            myPlacemark = createPlacemark(coords);
-            map.geoObjects.add(myPlacemark);
+            userPlacemark = createPlacemark(coords);
+            map.geoObjects.add(userPlacemark);
         }
-        // TODO: (Тимур) положить метку в бд или изменить координаты, если она уже есть в бд
-        xhr.open('POST', '/setPoint');
-        xhr.send();
+        let flag = false;
+        xhr1 = new XMLHttpRequest();
+        xhr1.open('GET', '/checkAround?latitude=' + coords[0] + '&longitude=' + coords[1], false);
+        xhr1.send();
+        if(xhr1.status == 200){
+            let response = JSON.parse(xhr1.response);
+            if(response['result'] == 1){
+                flag = true;
+            }
+        }
+        if(flag){
+            xhr.open('GET', '/setPoint?latitude=' + coords[0] + '&longitude=' + coords[1]);
+            xhr.send();
+            xhr.onload = function(){};
+        }
     })
 }
 
